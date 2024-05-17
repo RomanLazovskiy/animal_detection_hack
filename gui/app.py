@@ -1,5 +1,6 @@
 import shutil
 import sys
+import tempfile
 
 from PyQt5.QtWidgets import QGridLayout, QWidget, QLabel, QMainWindow, QTabWidget, QVBoxLayout, QPushButton, \
     QFileDialog, QApplication, QMessageBox, QGraphicsScene, QGraphicsView, QDialog
@@ -110,20 +111,18 @@ class MainWindow(QMainWindow):
                                                      "All Files (*.*);;Zip Files (*.zip);;Image Files (*.png *.jpg *.jpeg)")
         if not file_paths:
             return
-        extract_to = 'extracted_files'
-        if os.path.exists(extract_to):
-            shutil.rmtree(extract_to)
-        os.makedirs(extract_to)
 
         class_counts = {}
-        for file_path in file_paths:
-            if file_path.endswith('.zip'):
-                class_counts.update(process_archive_classification(classification_model, file_path, extract_to))
-            elif file_path.endswith(('.png', '.jpg', '.jpeg')):
-                class_counts.update(process_images_classification(classification_model, [file_path]))
-            else:
-                self.show_error("Unsupported file format for classification!")
-                return
+
+        with tempfile.TemporaryDirectory() as extract_to:
+            for file_path in file_paths:
+                if file_path.endswith('.zip'):
+                    class_counts.update(process_archive_classification(classification_model, file_path, extract_to))
+                elif file_path.endswith(('.png', '.jpg', '.jpeg')):
+                    class_counts.update(process_images_classification(classification_model, [file_path]))
+                else:
+                    self.show_error("Unsupported file format for classification!")
+                    return
 
         self.display_plot(class_counts)
 
