@@ -49,6 +49,7 @@ typing-extensions = "^4.11.0"
 tzdata = "^2024.1"
 urllib3 = "^2.2.1"
 pyinstaller = "^6.6.0"
+openpyxl = "^3.1.2"
 
 
 [build-system]

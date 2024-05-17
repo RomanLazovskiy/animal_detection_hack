@@ -11,6 +11,9 @@ __pycache__/
 *.jpeg
 .python-version
 
+backend/metadata
+backend/reports
+
 # Distribution / packaging
 .Python
 build/
