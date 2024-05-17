@@ -1,12 +1,9 @@
-import shutil
 import sys
 import tempfile
-from PyQt5.QtWidgets import QGridLayout, QWidget, QLabel, QMainWindow, QTabWidget, QVBoxLayout, QPushButton, \
-    QFileDialog, QApplication, QMessageBox, QGraphicsScene, QGraphicsView, QDialog
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QMainWindow, QTabWidget, QPushButton, QFileDialog, QApplication, QMessageBox, QGraphicsScene, QGraphicsView, QDialog
+from PyQt5.QtGui import QPixmap, QImage, QPainter, QPen, QFont
 from PyQt5.QtCore import Qt
-import os
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 from backend.inference import process_image_detection, detection_model, process_video, \
     process_archive_classification, classification_model, process_images_classification
@@ -72,21 +69,47 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def display_image(self, img, detections):
-        draw = ImageDraw.Draw(img)
-        font = ImageFont.load_default()
-        scaled_font_size = int(self.font_size * (img.size[0] / 600))  # Масштабируем шрифт пропорционально размеру изображения
-
-        for (xyxy, label_name) in detections:
-            draw.rectangle(xyxy, outline="red", width=2)
-            text_bbox = draw.textbbox((xyxy[0], xyxy[1]), label_name, font=font)
-            draw.rectangle(text_bbox, fill="red")
-            draw.text((xyxy[0], xyxy[1]), label_name, fill="white", font=font)
-
+        original_width, original_height = img.size
         img = img.convert("RGBA")
         img_resized = img.resize((600, 600), Image.Resampling.LANCZOS)
+        resized_width, resized_height = img_resized.size
+
+        width_ratio = resized_width / original_width
+        height_ratio = resized_height / original_height
+
         data = img_resized.tobytes("raw", "RGBA")
         qimage = QImage(data, img_resized.size[0], img_resized.size[1], QImage.Format_RGBA8888)
         pixmap = QPixmap.fromImage(qimage)
+
+        painter = QPainter(pixmap)
+
+        # Рисуем bbox
+        pen = QPen(Qt.red)
+        pen.setWidth(2)
+        painter.setPen(pen)
+        for (xyxy, label_name) in detections:
+            x0, y0, x1, y1 = xyxy
+            x0 *= width_ratio
+            y0 *= height_ratio
+            x1 *= width_ratio
+            y1 *= height_ratio
+            painter.drawRect(int(x0), int(y0), int(x1 - x0), int(y1 - y0))
+
+        # Рисуем метки класса
+        pen = QPen(Qt.green)
+        painter.setPen(pen)
+        font = QFont()
+        font.setFamily('Arial')
+        font.setBold(True)
+        font.setPointSize(self.font_size)
+        painter.setFont(font)
+        for (xyxy, label_name) in detections:
+            x0, y0, x1, y1 = xyxy
+            x0 *= width_ratio
+            y0 *= height_ratio
+            painter.drawText(int(x0), int(y0) - 10, label_name)
+
+        painter.end()
 
         scene = QGraphicsScene()
         scene.addPixmap(pixmap)
@@ -110,7 +133,6 @@ class MainWindow(QMainWindow):
 
         if file_path.endswith(('.png', '.jpg', '.jpeg')):
             img, detections = process_image_detection(detection_model, file_path)
-            img.save("output_image.png")  # Сохраняем изображение для отладки
             self.display_image(img, detections)
         elif file_path.endswith(('.mp4', '.avi')):
             process_video(detection_model, file_path)
