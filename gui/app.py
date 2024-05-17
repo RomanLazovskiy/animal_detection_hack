@@ -1,12 +1,15 @@
 import sys
 import tempfile
-from PyQt5.QtWidgets import QVBoxLayout, QWidget, QMainWindow, QTabWidget, QPushButton, QFileDialog, QApplication, QMessageBox, QGraphicsScene, QGraphicsView, QDialog
+
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QMainWindow, QTabWidget, QPushButton, QFileDialog, QApplication, QMessageBox, QGraphicsScene, QGraphicsView, QDialog, QListWidget, QListWidgetItem
 from PyQt5.QtGui import QPixmap, QImage, QPainter, QPen, QFont
 from PyQt5.QtCore import Qt
 from PIL import Image
+import matplotlib.pyplot as plt
+from io import BytesIO
 
 from backend.inference import process_image_detection, detection_model, process_video, \
-    process_archive_classification, classification_model, process_images_classification
+    process_archive_classification, classification_model, process_images_classification, save_classification_results, load_history_files, load_classification_history
 
 
 class MainWindow(QMainWindow):
@@ -19,15 +22,19 @@ class MainWindow(QMainWindow):
 
         self.detection_tab = QWidget()
         self.classification_tab = QWidget()
+        self.history_tab = QWidget()
 
         self.tab_widget.addTab(self.detection_tab, "Detection")
         self.tab_widget.addTab(self.classification_tab, "Classification")
+        self.tab_widget.addTab(self.history_tab, "History")
 
         self.detection_layout = QVBoxLayout()
         self.classification_layout = QVBoxLayout()
+        self.history_layout = QVBoxLayout()
 
         self.detection_tab.setLayout(self.detection_layout)
         self.classification_tab.setLayout(self.classification_layout)
+        self.history_tab.setLayout(self.history_layout)
 
         self.detection_button = QPushButton("Load File for Detection")
         self.detection_button.clicked.connect(self.load_file_detection)
@@ -37,12 +44,24 @@ class MainWindow(QMainWindow):
         self.classification_button.clicked.connect(self.load_file_classification)
         self.classification_layout.addWidget(self.classification_button)
 
+        self.history_list = QListWidget()
+        self.history_layout.addWidget(self.history_list)
+        self.history_button = QPushButton("Load Selected Classification History")
+        self.history_button.clicked.connect(self.load_selected_classification_history)
+        self.history_layout.addWidget(self.history_button)
+
         self.font_size = 24  # Задаем размер шрифта по умолчанию
 
-    def display_plot(self, class_counts):
-        import matplotlib.pyplot as plt
-        from io import BytesIO
+        self.load_history_files()
 
+    def load_history_files(self):
+        self.history_list.clear()
+        history_files = load_history_files()
+        for filename in history_files:
+            item = QListWidgetItem(filename)
+            self.history_list.addItem(item)
+
+    def display_plot(self, class_counts):
         buf = BytesIO()
         fig, ax = plt.subplots()
         labels = list(class_counts.keys())
@@ -157,10 +176,26 @@ class MainWindow(QMainWindow):
                     self.show_error("Unsupported file format for classification!")
                     return
 
+            save_classification_results(class_counts)
+
         self.display_plot(class_counts)
+        self.load_history_files()  # Обновляем список историй
+
+    def load_selected_classification_history(self):
+        selected_item = self.history_list.currentItem()
+        if selected_item:
+            class_counts = load_classification_history(selected_item.text())
+            class_counts_dict = {}
+            for item in class_counts:
+                class_name = item["class"]
+                class_counts_dict[class_name] = class_counts_dict.get(class_name, 0) + 1
+            self.display_plot(class_counts_dict)
+        else:
+            self.show_error("No history item selected!")
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
