@@ -42,15 +42,19 @@ def process_image_detection(model, image_path):
 # Функция для обработки изображений для классификации
 def process_images_classification(model, image_paths):
     class_counts = {}
+    image_classifications = []
     for image_path in image_paths:
         img = Image.open(image_path).convert("RGB")
         outputs = run_inference(model, img)
+        image_data = {"image": os.path.basename(image_path), "classes": []}
         for result in outputs:
             if result.probs is not None:
                 label = int(result.probs.top1)
                 label_name = model.names[label]
                 class_counts[label_name] = class_counts.get(label_name, 0) + 1
-    return class_counts
+                image_data["classes"].append(label_name)
+        image_classifications.append(image_data)
+    return class_counts, image_classifications
 
 # Функция для обработки видео для детекции
 def process_video(model, video_path):
@@ -86,12 +90,15 @@ def process_archive_classification(model, archive_path, extract_to):
     return process_images_classification(model, image_paths)
 
 # Функция для сохранения результатов классификации в JSON файл
-def save_classification_results(results):
-    timestamp = datetime.now().strftime("%Y_%m_%d_%H:%M:%S")
-    print(timestamp)
+def save_classification_results(results, image_classifications):
+    timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     json_filename = f"classification_{timestamp}.json"
     json_path = os.path.join(history_directory, json_filename)
-    json_data = [{"image": image_name, "class": class_name} for image_name, class_name in results.items()]
+    json_data = {
+        "timestamp": timestamp,
+        "class_counts": results,
+        "image_classifications": image_classifications
+    }
     with open(json_path, 'w') as json_file:
         json.dump(json_data, json_file, indent=4)
     return json_path
@@ -108,5 +115,5 @@ def load_history_files():
 def load_classification_history(filename):
     json_path = os.path.join(history_directory, filename)
     with open(json_path, 'r') as json_file:
-        class_counts = json.load(json_file)
-    return class_counts
+        data = json.load(json_file)
+    return data

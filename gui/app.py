@@ -1,7 +1,8 @@
 import sys
 import tempfile
-
-from PyQt5.QtWidgets import QVBoxLayout, QWidget, QMainWindow, QTabWidget, QPushButton, QFileDialog, QApplication, QMessageBox, QGraphicsScene, QGraphicsView, QDialog, QListWidget, QListWidgetItem
+import json
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QMainWindow, QTabWidget, QPushButton, QFileDialog, QApplication, \
+    QMessageBox, QGraphicsScene, QGraphicsView, QDialog, QListWidget, QListWidgetItem, QTextEdit
 from PyQt5.QtGui import QPixmap, QImage, QPainter, QPen, QFont
 from PyQt5.QtCore import Qt
 from PIL import Image
@@ -9,7 +10,9 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 
 from backend.inference import process_image_detection, detection_model, process_video, \
-    process_archive_classification, classification_model, process_images_classification, save_classification_results, load_history_files, load_classification_history
+    process_archive_classification, classification_model, process_images_classification, save_classification_results, \
+    load_history_files, load_classification_history, history_directory
+import os
 
 
 class MainWindow(QMainWindow):
@@ -46,9 +49,18 @@ class MainWindow(QMainWindow):
 
         self.history_list = QListWidget()
         self.history_layout.addWidget(self.history_list)
-        self.history_button = QPushButton("Load Selected Classification History")
-        self.history_button.clicked.connect(self.load_selected_classification_history)
-        self.history_layout.addWidget(self.history_button)
+
+        self.view_json_button = QPushButton("View Selected JSON")
+        self.view_json_button.clicked.connect(self.view_selected_json)
+        self.history_layout.addWidget(self.view_json_button)
+
+        self.view_plot_button = QPushButton("View Selected Classification Plot")
+        self.view_plot_button.clicked.connect(self.load_selected_classification_history)
+        self.history_layout.addWidget(self.view_plot_button)
+
+        self.clear_history_button = QPushButton("Clear History")
+        self.clear_history_button.clicked.connect(self.clear_history)
+        self.history_layout.addWidget(self.clear_history_button)
 
         self.font_size = 24  # Задаем размер шрифта по умолчанию
 
@@ -165,33 +177,66 @@ class MainWindow(QMainWindow):
             return
 
         class_counts = {}
+        image_classifications = []
 
         with tempfile.TemporaryDirectory() as extract_to:
             for file_path in file_paths:
                 if file_path.endswith('.zip'):
-                    class_counts.update(process_archive_classification(classification_model, file_path, extract_to))
+                    new_class_counts, new_image_classifications = process_archive_classification(classification_model,
+                                                                                                 file_path, extract_to)
                 elif file_path.endswith(('.png', '.jpg', '.jpeg')):
-                    class_counts.update(process_images_classification(classification_model, [file_path]))
+                    new_class_counts, new_image_classifications = process_images_classification(classification_model,
+                                                                                                [file_path])
                 else:
                     self.show_error("Unsupported file format for classification!")
                     return
+                class_counts.update(new_class_counts)
+                image_classifications.extend(new_image_classifications)
 
-            save_classification_results(class_counts)
-
+        save_classification_results(class_counts, image_classifications)
         self.display_plot(class_counts)
-        self.load_history_files()  # Обновляем список историй
+        self.load_history_files()  # Обновляем список файлов истории
 
     def load_selected_classification_history(self):
-        selected_item = self.history_list.currentItem()
-        if selected_item:
-            class_counts = load_classification_history(selected_item.text())
-            class_counts_dict = {}
-            for item in class_counts:
-                class_name = item["class"]
-                class_counts_dict[class_name] = class_counts_dict.get(class_name, 0) + 1
-            self.display_plot(class_counts_dict)
-        else:
-            self.show_error("No history item selected!")
+        selected_items = self.history_list.selectedItems()
+        if not selected_items:
+            self.show_error("No history file selected!")
+            return
+
+        filename = selected_items[0].text()
+        data = load_classification_history(filename)
+        class_counts = data["class_counts"]
+        self.display_plot(class_counts)
+
+    def view_selected_json(self):
+        selected_items = self.history_list.selectedItems()
+        if not selected_items:
+            self.show_error("No history file selected!")
+            return
+
+        filename = selected_items[0].text()
+        json_path = os.path.join(history_directory, filename)
+        with open(json_path, 'r') as json_file:
+            json_data = json.load(json_file)
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("View JSON")
+        layout = QVBoxLayout()
+        text_edit = QTextEdit()
+        text_edit.setPlainText(json.dumps(json_data, indent=4))
+        layout.addWidget(text_edit)
+        dialog.setLayout(layout)
+        dialog.exec_()
+
+    def clear_history(self):
+        reply = QMessageBox.question(self, 'Clear History', "Are you sure you want to clear all history files?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            for filename in os.listdir(history_directory):
+                file_path = os.path.join(history_directory, filename)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+            self.load_history_files()  # Обновляем список файлов истории
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
