@@ -2,6 +2,7 @@ import sys
 import os
 import tempfile
 import json
+import platform
 from PyQt5.QtWidgets import QVBoxLayout, QWidget, QMainWindow, QTabWidget, QPushButton, QFileDialog, QApplication, \
     QMessageBox, QGraphicsScene, QGraphicsView, QDialog, QListWidget, QListWidgetItem, QTextEdit
 from PyQt5.QtGui import QPixmap, QImage, QPainter, QPen, QFont
@@ -163,7 +164,6 @@ class MainWindow(QMainWindow):
         font.setPointSize(self.font_size)
         painter.setFont(font)
         for (xyxy, label_name) in detections:
-            x0, y0, x1, y1 = xyxy
             x0 *= width_ratio
             y0 *= height_ratio
             painter.drawText(int(x0), int(y0) - 10, label_name)
@@ -276,8 +276,14 @@ class MainWindow(QMainWindow):
 
         filename = selected_items[0].text()
         report_path = os.path.join(reports_directory, filename)
-        os.system(
-            f'open "{report_path}"')  # Используем `open` для macOS. Для Windows используйте `start` и для Linux `xdg-open`.
+
+        # Determine the OS and use the appropriate command
+        if platform.system() == "Windows":
+            os.system(f'start "" "{report_path}"')
+        elif platform.system() == "Darwin":  # macOS
+            os.system(f'open "{report_path}"')
+        else:  # Linux and other Unix-like systems
+            os.system(f'xdg-open "{report_path}"')
 
     def clear_metadata(self):
         reply = QMessageBox.question(self, 'Очистить метаданные', "Вы уверены, что хотите очистить все метаданные?",
