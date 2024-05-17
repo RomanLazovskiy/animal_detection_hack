@@ -99,7 +99,6 @@ class MainWindow(QMainWindow):
 
         if file_path.endswith(('.png', '.jpg', '.jpeg')):
             img = process_image_detection(detection_model, file_path)
-            img.save("output_image.png")  # Сохраняем изображение для отладки
             self.display_image(img)
         elif file_path.endswith(('.mp4', '.avi')):
             process_video(detection_model, file_path)
