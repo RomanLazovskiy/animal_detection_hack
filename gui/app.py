@@ -1,13 +1,12 @@
 import shutil
 import sys
 import tempfile
-
 from PyQt5.QtWidgets import QGridLayout, QWidget, QLabel, QMainWindow, QTabWidget, QVBoxLayout, QPushButton, \
     QFileDialog, QApplication, QMessageBox, QGraphicsScene, QGraphicsView, QDialog
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 import os
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from backend.inference import process_image_detection, detection_model, process_video, \
     process_archive_classification, classification_model, process_images_classification
@@ -41,6 +40,8 @@ class MainWindow(QMainWindow):
         self.classification_button.clicked.connect(self.load_file_classification)
         self.classification_layout.addWidget(self.classification_button)
 
+        self.font_size = 24  # Задаем размер шрифта по умолчанию
+
     def display_plot(self, class_counts):
         import matplotlib.pyplot as plt
         from io import BytesIO
@@ -52,7 +53,7 @@ class MainWindow(QMainWindow):
         ax.bar(labels, counts)
         ax.set_xlabel('Class')
         ax.set_ylabel('Count')
-        ax.set_title('Classification Results')  # Изменено на set_title
+        ax.set_title('Classification Results')
         plt.savefig(buf, format='png')
         buf.seek(0)
 
@@ -70,8 +71,17 @@ class MainWindow(QMainWindow):
         dialog.layout().addWidget(view)
         dialog.exec_()
 
-    def display_image(self, img):
-        # Преобразуем изображение в формат, понятный PyQt5
+    def display_image(self, img, detections):
+        draw = ImageDraw.Draw(img)
+        font = ImageFont.load_default()
+        scaled_font_size = int(self.font_size * (img.size[0] / 600))  # Масштабируем шрифт пропорционально размеру изображения
+
+        for (xyxy, label_name) in detections:
+            draw.rectangle(xyxy, outline="red", width=2)
+            text_bbox = draw.textbbox((xyxy[0], xyxy[1]), label_name, font=font)
+            draw.rectangle(text_bbox, fill="red")
+            draw.text((xyxy[0], xyxy[1]), label_name, fill="white", font=font)
+
         img = img.convert("RGBA")
         img_resized = img.resize((600, 600), Image.Resampling.LANCZOS)
         data = img_resized.tobytes("raw", "RGBA")
@@ -99,8 +109,9 @@ class MainWindow(QMainWindow):
             return
 
         if file_path.endswith(('.png', '.jpg', '.jpeg')):
-            img = process_image_detection(detection_model, file_path)
-            self.display_image(img)
+            img, detections = process_image_detection(detection_model, file_path)
+            img.save("output_image.png")  # Сохраняем изображение для отладки
+            self.display_image(img, detections)
         elif file_path.endswith(('.mp4', '.avi')):
             process_video(detection_model, file_path)
         else:
