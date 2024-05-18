@@ -52,6 +52,7 @@ def export_to_excel(filename):
     for item in data["image_classifications"]:
         classes = [cls[0] for cls in item["classes"]]
         item["classes"] = ", ".join([animal_dict.get(cls, cls) for cls in classes])
+        item["image"] = os.path.basename(item["image"])  # Сохраняем только имя файла
 
     # Преобразование данных в DataFrame
     df = pd.DataFrame(data["image_classifications"])
@@ -65,9 +66,6 @@ def export_to_excel(filename):
     df.to_excel(excel_path, index=False)
     logger.debug(f"Exported {filename} to Excel at {excel_path}")
     return excel_path
-
-
-
 
 def clear_directory(directory_path, parent):
     reply = QMessageBox.question(parent, 'Очистить файлы', f"Вы уверены, что хотите очистить все файлы в {directory_path}?",
