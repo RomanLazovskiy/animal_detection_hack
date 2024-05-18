@@ -29,7 +29,7 @@ $(VENV_DIR)/Scripts/activate: pyproject.toml
 	    $(TOUCH); \
 	fi
 
-# Сборка приложения в исполняемый файл
+# Сборка приложения в исполняемый exe файл
 build: venv $(SPEC_FILE)
 	$(ACTIVATE_CMD) && pyinstaller --clean --noconfirm $(SPEC_FILE)
 
@@ -50,7 +50,7 @@ update-deps: venv
 help:
 	@echo "Используйте make <опция> для выполнения одного из следующих действий:"
 	@echo "  venv            Создание виртуального окружения и установка зависимостей"
-	@echo "  build           Сборка приложения в исполняемый файл"
+	@echo "  build           Сборка приложения в исполняемый exe файл"
 	@echo "  clean           Удаление сборки и временных файлов"
 	@echo "  run             Запуск приложения"
 	@echo "  update-deps     Обновление зависимостей через poetry"
