@@ -1,12 +1,9 @@
 import zipfile
 import os
-import json
-from datetime import datetime
 from ultralytics import YOLO
 from PIL import Image, ImageDraw, UnidentifiedImageError
 import cv2
 import numpy as np
-import pandas as pd
 
 # Загрузка моделей YOLOv8
 model_directory = os.path.join(os.path.dirname(__file__), '..', 'models')

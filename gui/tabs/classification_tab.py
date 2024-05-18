@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QEventLoop
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QEventLoop, QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFileDialog, QMessageBox, QProgressDialog
 from backend.inference import process_archive_classification, classification_model, process_images_classification
 from utils.display import display_plot
