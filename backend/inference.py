@@ -13,14 +13,6 @@ import pandas as pd
 detection_model = YOLO('yolov8n.pt')
 classification_model = YOLO('yolov8n-cls.pt')
 
-# Директория для хранения результатов классификации
-base_dir = os.path.dirname(os.path.abspath(__file__))
-metadata_directory = os.path.join(base_dir, "metadata")
-reports_directory = os.path.join(base_dir, "reports")
-os.makedirs(metadata_directory, exist_ok=True)
-os.makedirs(reports_directory, exist_ok=True)
-
-
 # Функция для выполнения инференса
 def run_inference(model, img):
     results = model.predict(source=img)

@@ -12,8 +12,8 @@ __pycache__/
 *.jpg
 .python-version
 
-backend/metadata
-backend/reports
+gui/metadata
+gui/reports
 
 # Distribution / packaging
 .Python
