@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFileDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFileDialog, QMessageBox
 from backend.inference import process_image_detection, detection_model, process_video
 from utils.display import display_image
 from utils.logger import logger

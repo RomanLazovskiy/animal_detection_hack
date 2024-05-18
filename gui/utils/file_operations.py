@@ -48,12 +48,17 @@ def export_to_excel(filename):
     with open(file_path, 'r') as file:
         data = json.load(file)
 
+    # Преобразование списка классов в строку
+    for item in data["image_classifications"]:
+        item["classes"] = ", ".join(item["classes"])
+
     df = pd.DataFrame(data["image_classifications"])
     timestamp = get_timestamp()
     excel_path = os.path.join(reports_directory, f"{os.path.splitext(filename)[0]}_{timestamp}.xlsx")
     df.to_excel(excel_path, index=False)
     logger.debug(f"Exported {filename} to Excel at {excel_path}")
     return excel_path
+
 
 def clear_directory(directory_path, parent):
     reply = QMessageBox.question(parent, 'Очистить файлы', f"Вы уверены, что хотите очистить все файлы в {directory_path}?",

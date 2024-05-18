@@ -17,15 +17,16 @@ detection_model = YOLO(detection_model_path)
 classification_model = YOLO(classification_model_path)
 
 # Функция для выполнения инференса
-def run_inference(model, img):
+def run_inference(model, img, stop_event=None):
     results = model.predict(source=img)
+    if stop_event and stop_event.is_set():
+        raise InterruptedError("Inference was stopped.")
     return results
 
-
 # Функция для обработки изображения для детекции и возвращения bbox и меток
-def process_image_detection(model, image_path):
+def process_image_detection(model, image_path, stop_event=None):
     img = Image.open(image_path).convert("RGB")
-    outputs = run_inference(model, img)
+    outputs = run_inference(model, img, stop_event)
 
     detections = []
 
@@ -40,18 +41,19 @@ def process_image_detection(model, image_path):
 
     return img, detections
 
-
 # Функция для обработки изображений для классификации
-def process_images_classification(model, image_paths):
+def process_images_classification(model, image_paths, stop_event=None):
     class_counts = {}
     image_classifications = []
     for image_path in image_paths:
+        if stop_event and stop_event.is_set():
+            raise InterruptedError("Inference was stopped.")
         try:
             img = Image.open(image_path).convert("RGB")
         except UnidentifiedImageError:
             print(f"Cannot identify image file {image_path}, skipping.")
             continue
-        outputs = run_inference(model, img)
+        outputs = run_inference(model, img, stop_event)
         image_data = {"image": os.path.basename(image_path), "classes": []}
         for result in outputs:
             if result.probs is not None:
@@ -62,18 +64,25 @@ def process_images_classification(model, image_paths):
         image_classifications.append(image_data)
     return class_counts, image_classifications
 
-
 # Функция для обработки видео для детекции
-def process_video(model, video_path):
+def process_video(model, video_path, stop_event=None):
     cap = cv2.VideoCapture(video_path)
     while cap.isOpened():
+        if stop_event and stop_event.is_set():
+            raise InterruptedError("Inference was stopped.")
         ret, frame = cap.read()
         if not ret:
             break
+
         img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        outputs = run_inference(model, img)
+        outputs = run_inference(model, img, stop_event)
         draw = ImageDraw.Draw(img)
         detections = []
+
+        if not outputs:
+            print("No outputs from model")
+            continue
+
         for result in outputs:
             boxes = result.boxes
             if boxes is not None:
@@ -82,16 +91,20 @@ def process_video(model, video_path):
                     label_name = model.names[label]
                     xyxy = box.xyxy[0].tolist()
                     detections.append((xyxy, label_name))
-        frame = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-        cv2.imshow('frame', frame)
+                    # Draw bounding box and label
+                    draw.rectangle(xyxy, outline="red", width=2)
+                    draw.text((xyxy[0], xyxy[1]), label_name, fill="red")
+
+        frame_with_detections = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+        cv2.imshow('frame', frame_with_detections)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+
     cap.release()
     cv2.destroyAllWindows()
 
-
 # Функция для обработки архива для классификации
-def process_archive_classification(model, archive_path, extract_to):
+def process_archive_classification(model, archive_path, extract_to, stop_event=None):
     with zipfile.ZipFile(archive_path, 'r') as zip_ref:
         zip_ref.extractall(extract_to)
 
@@ -101,78 +114,4 @@ def process_archive_classification(model, archive_path, extract_to):
             if file.endswith(('.png', '.jpg', '.jpeg')):
                 image_paths.append(os.path.join(root, file))
 
-    return process_images_classification(model, image_paths)
-
-
-# Функция для сохранения результатов классификации в JSON файл и генерации Excel файла
-def save_classification_results(results, image_classifications):
-    timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    json_filename = f"classification_{timestamp}.json"
-    json_path = os.path.join(metadata_directory, json_filename)
-    json_data = {
-        "timestamp": timestamp,
-        "class_counts": results,
-        "image_classifications": image_classifications
-    }
-    with open(json_path, 'w') as json_file:
-        json.dump(json_data, json_file, indent=4)
-
-    excel_filename = json_filename.replace(".json", ".xlsx")
-    excel_path = os.path.join(reports_directory, excel_filename)
-
-    # Создаем DataFrame из данных JSON
-    rows = []
-    for item in json_data["image_classifications"]:
-        for class_name in item["classes"]:
-            rows.append({"Изображение": item["image"], "Класс": class_name})
-
-    df = pd.DataFrame(rows)
-    df.to_excel(excel_path, index=False)
-
-    return json_path, excel_path
-
-
-# Функция для загрузки всех JSON файлов из директории истории
-def load_history_files():
-    history_files = []
-    for filename in os.listdir(metadata_directory):
-        if filename.endswith(".json"):
-            history_files.append(filename)
-    return history_files
-
-
-# Функция для загрузки всех Excel отчетов из директории истории
-def load_report_files():
-    report_files = []
-    for filename in os.listdir(reports_directory):
-        if filename.endswith(".xlsx"):
-            report_files.append(filename)
-    return report_files
-
-
-# Функция для загрузки данных из выбранного JSON файла
-def load_classification_history(filename):
-    json_path = os.path.join(metadata_directory, filename)
-    with open(json_path, 'r') as json_file:
-        data = json.load(json_file)
-    return data
-
-# Функция для экспорта данных из JSON файла в Excel
-def export_to_excel(json_filename):
-    json_path = os.path.join(metadata_directory, json_filename)
-    with open(json_path, 'r') as json_file:
-        data = json.load(json_file)
-
-    excel_filename = json_filename.replace(".json", ".xlsx")
-    excel_path = os.path.join(reports_directory, excel_filename)
-
-    # Создаем DataFrame из данных JSON
-    rows = []
-    for item in data["image_classifications"]:
-        for class_name in item["classes"]:
-            rows.append({"Изображение": item["image"], "Класс": class_name})
-
-    df = pd.DataFrame(rows)
-    df.to_excel(excel_path, index=False)
-    logger.debug(f"Exported {json_filename} to {excel_path}")
-    return excel_path
+    return process_images_classification(model, image_paths, stop_event)
