@@ -3,8 +3,19 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+.idea
 # C extensions
 *.so
+*.pt
+*.zip
+*.jpeg
+*.jpg
+*.png
+*.mp4
+.python-version
+
+gui/metadata
+gui/reports
 
 # Distribution / packaging
 .Python
@@ -30,7 +41,6 @@ MANIFEST
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
 
 # Installer logs
 pip-log.txt
