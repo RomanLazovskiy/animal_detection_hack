@@ -5,7 +5,6 @@ from PIL import Image, ImageDraw, UnidentifiedImageError
 import cv2
 import numpy as np
 
-# Загрузка моделей YOLOv8
 model_directory = os.path.join(os.path.dirname(__file__), '..', 'models')
 detection_model_path = os.path.join(model_directory, 'best_detect.pt')
 classification_model_path = os.path.join(model_directory, 'best_clasify.pt')
@@ -15,7 +14,7 @@ classification_model = YOLO(classification_model_path)
 
 # Функция для выполнения инференса
 def run_inference(model, img, stop_event=None):
-    results = model.predict(source=img)
+    results = model.predict(source=img, imgsz=544)
     if stop_event and stop_event.is_set():
         raise InterruptedError("Inference was stopped.")
     return results
@@ -66,7 +65,7 @@ def process_video(model, video_path, stop_event=None):
     cap = cv2.VideoCapture(video_path)
     while cap.isOpened():
         if stop_event and stop_event.is_set():
-            raise InterruptedError("Inference was stopped.")
+            raise InterruptedError("Процесс предсказания модели был прерван!.")
         ret, frame = cap.read()
         if not ret:
             break

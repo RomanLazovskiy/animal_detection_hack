@@ -3,6 +3,7 @@ import json
 import datetime
 from PyQt5.QtWidgets import QMessageBox
 from utils.logger import logger
+import pandas as pd
 
 metadata_directory = "metadata"
 reports_directory = "reports"
@@ -42,22 +43,29 @@ def save_classification_results(class_counts, image_classifications):
     logger.debug(f"Saved classification results to {filename}")
 
 def export_to_excel(filename):
-    import pandas as pd
 
     file_path = os.path.join(metadata_directory, filename)
     with open(file_path, 'r') as file:
         data = json.load(file)
 
     # Преобразование списка классов в строку
+    animal_dict = {'roedeer': 'Косуля', 'deer': 'Олень', 'muskdeer': 'Кабарга'}
     for item in data["image_classifications"]:
-        item["classes"] = ", ".join(item["classes"])
+        item["classes"] = ", ".join([animal_dict.get(cls, cls) for cls in item["classes"]])
 
+    # Преобразование данных в DataFrame
     df = pd.DataFrame(data["image_classifications"])
+
+    # Переименование столбцов и упорядочивание
+    df = df.rename(columns={"image": "Изображение", "classes": "Класс"})
+    df = df[["Изображение", "Класс"]]
+
     timestamp = get_timestamp()
     excel_path = os.path.join(reports_directory, f"{os.path.splitext(filename)[0]}_{timestamp}.xlsx")
     df.to_excel(excel_path, index=False)
     logger.debug(f"Exported {filename} to Excel at {excel_path}")
     return excel_path
+
 
 
 def clear_directory(directory_path, parent):
