@@ -1,7 +1,6 @@
 import zipfile
 import os
 import json
-import tempfile
 from datetime import datetime
 from ultralytics import YOLO
 from PIL import Image, ImageDraw
@@ -10,8 +9,12 @@ import numpy as np
 import pandas as pd
 
 # Загрузка моделей YOLOv8
-detection_model = YOLO('yolov8n.pt')
-classification_model = YOLO('yolov8n-cls.pt')
+model_directory = os.path.join(os.path.dirname(__file__), '..', 'models')
+detection_model_path = os.path.join(model_directory, 'best_detect.pt')
+classification_model_path = os.path.join(model_directory, 'best_clasify.pt')
+
+detection_model = YOLO(detection_model_path)
+classification_model = YOLO(classification_model_path)
 
 # Функция для выполнения инференса
 def run_inference(model, img):
@@ -144,7 +147,6 @@ def load_classification_history(filename):
         data = json.load(json_file)
     return data
 
-
 # Функция для экспорта данных из JSON файла в Excel
 def export_to_excel(json_filename):
     json_path = os.path.join(metadata_directory, json_filename)
@@ -162,4 +164,5 @@ def export_to_excel(json_filename):
 
     df = pd.DataFrame(rows)
     df.to_excel(excel_path, index=False)
+    logger.debug(f"Exported {json_filename} to {excel_path}")
     return excel_path
