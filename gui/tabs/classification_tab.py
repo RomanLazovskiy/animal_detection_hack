@@ -1,9 +1,12 @@
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QEventLoop, QCoreApplication
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFileDialog, QMessageBox, QProgressDialog
+# gui/tabs/classification_tab.py
+
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QCoreApplication, QEventLoop
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFileDialog, QMessageBox, QProgressDialog, QDialog
 from backend.inference import process_archive_classification, classification_model, process_images_classification
 from utils.display import display_plot
 from utils.file_operations import save_classification_results, export_to_excel, load_history_files
 from utils.logger import logger
+from .classification_dialog import ClassificationDialog
 import tempfile
 import os
 import threading
@@ -39,7 +42,6 @@ class ClassificationWorker(QThread):
                 else:
                     continue
 
-                # Update class_counts
                 for key, value in new_class_counts.items():
                     class_counts[key] = class_counts.get(key, 0) + value
                 image_classifications.extend(new_image_classifications)
@@ -102,6 +104,12 @@ class ClassificationTab(QWidget):
             self.show_error("Ошибка при классификации: См. логи для подробностей")
             return
 
+        images_to_classify = self.get_images_to_classify(image_classifications)
+
+        QMessageBox.information(self, "Информация", f"Найдено изображений для ручной классификации: {len(images_to_classify)}")
+
+        self.show_classification_dialogs(images_to_classify)
+
         save_classification_results(class_counts, image_classifications)
         display_plot(self, class_counts)
 
@@ -113,6 +121,25 @@ class ClassificationTab(QWidget):
         latest_history_file = sorted(history_files)[-1]
         export_to_excel(latest_history_file)
         main_window.reports_tab.load_report_files()
+
+    def get_images_to_classify(self, image_classifications):
+        images_to_classify = []
+        for image_data in image_classifications:
+            for class_data in image_data["classes"]:
+                if isinstance(class_data, tuple) and len(class_data) == 2:
+                    class_name, class_prob = class_data
+                    if 0.4 <= class_prob <= 0.55:
+                        images_to_classify.append(image_data)
+                        break
+        return images_to_classify
+
+    def show_classification_dialogs(self, images_to_classify):
+        for image_data in images_to_classify:
+            dialog = ClassificationDialog(image_data["image"], ['roedeer', 'deer', 'muskdeer'], self)
+            if dialog.exec_() == QDialog.Accepted:
+                selected_class = dialog.selected_class
+                image_data["classes"] = selected_class
+                print(image_data["classes"])
 
     def on_classification_error(self, message):
         self.progress_dialog.close()

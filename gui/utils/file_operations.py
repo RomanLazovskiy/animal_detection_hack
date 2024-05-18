@@ -43,7 +43,6 @@ def save_classification_results(class_counts, image_classifications):
     logger.debug(f"Saved classification results to {filename}")
 
 def export_to_excel(filename):
-
     file_path = os.path.join(metadata_directory, filename)
     with open(file_path, 'r') as file:
         data = json.load(file)
@@ -51,7 +50,8 @@ def export_to_excel(filename):
     # Преобразование списка классов в строку
     animal_dict = {'roedeer': 'Косуля', 'deer': 'Олень', 'muskdeer': 'Кабарга'}
     for item in data["image_classifications"]:
-        item["classes"] = ", ".join([animal_dict.get(cls, cls) for cls in item["classes"]])
+        classes = [cls[0] for cls in item["classes"]]
+        item["classes"] = ", ".join([animal_dict.get(cls, cls) for cls in classes])
 
     # Преобразование данных в DataFrame
     df = pd.DataFrame(data["image_classifications"])
@@ -65,6 +65,7 @@ def export_to_excel(filename):
     df.to_excel(excel_path, index=False)
     logger.debug(f"Exported {filename} to Excel at {excel_path}")
     return excel_path
+
 
 
 

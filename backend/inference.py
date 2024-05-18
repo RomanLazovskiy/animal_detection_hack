@@ -1,3 +1,5 @@
+# backend/inference.py
+
 import zipfile
 import os
 from ultralytics import YOLO
@@ -12,14 +14,12 @@ classification_model_path = os.path.join(model_directory, 'best_clasify.pt')
 detection_model = YOLO(detection_model_path)
 classification_model = YOLO(classification_model_path)
 
-# Функция для выполнения инференса
 def run_inference(model, img, stop_event=None):
     results = model.predict(source=img, imgsz=544)
     if stop_event and stop_event.is_set():
         raise InterruptedError("Inference was stopped.")
     return results
 
-# Функция для обработки изображения для детекции и возвращения bbox и меток
 def process_image_detection(model, image_path, stop_event=None):
     img = Image.open(image_path).convert("RGB")
     outputs = run_inference(model, img, stop_event)
@@ -37,7 +37,6 @@ def process_image_detection(model, image_path, stop_event=None):
 
     return img, detections
 
-# Функция для обработки изображений для классификации
 def process_images_classification(model, image_paths, stop_event=None):
     class_counts = {}
     image_classifications = []
@@ -55,12 +54,12 @@ def process_images_classification(model, image_paths, stop_event=None):
             if result.probs is not None:
                 label = int(result.probs.top1)
                 label_name = model.names[label]
+                top1conf = result.probs.top1conf.item()  # Получаем вероятность для top1 класса
                 class_counts[label_name] = class_counts.get(label_name, 0) + 1
-                image_data["classes"].append(label_name)
+                image_data["classes"].append((label_name, top1conf))  # Сохраняем класс и его вероятность
         image_classifications.append(image_data)
     return class_counts, image_classifications
 
-# Функция для обработки видео для детекции
 def process_video(model, video_path, stop_event=None):
     cap = cv2.VideoCapture(video_path)
     while cap.isOpened():
@@ -87,7 +86,6 @@ def process_video(model, video_path, stop_event=None):
                     label_name = model.names[label]
                     xyxy = box.xyxy[0].tolist()
                     detections.append((xyxy, label_name))
-                    # Draw bounding box and label
                     draw.rectangle(xyxy, outline="red", width=2)
                     draw.text((xyxy[0], xyxy[1]), label_name, fill="red")
 
@@ -99,7 +97,6 @@ def process_video(model, video_path, stop_event=None):
     cap.release()
     cv2.destroyAllWindows()
 
-# Функция для обработки архива для классификации
 def process_archive_classification(model, archive_path, extract_to, stop_event=None):
     with zipfile.ZipFile(archive_path, 'r') as zip_ref:
         zip_ref.extractall(extract_to)
