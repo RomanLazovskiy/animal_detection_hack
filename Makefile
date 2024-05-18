@@ -31,7 +31,7 @@ $(VENV_DIR)/Scripts/activate: pyproject.toml
 
 # Сборка приложения в исполняемый файл
 build: venv $(SPEC_FILE)
-	$(ACTIVATE_CMD) && pyinstaller --clean --onefile --noconfirm $(SPEC_FILE)
+	$(ACTIVATE_CMD) && pyinstaller --clean --noconfirm $(SPEC_FILE)
 
 # Удаление сборки и временных файлов
 clean:

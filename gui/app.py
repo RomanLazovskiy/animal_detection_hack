@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     logger.debug("Starting application")
     app = QApplication(sys.argv)
+    logger.debug(f"sys.argv: {sys.argv}")
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
