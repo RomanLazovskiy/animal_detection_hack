@@ -8,7 +8,6 @@ from utils.file_operations import save_classification_results, export_to_excel, 
 from utils.logger import logger
 from .classification_dialog import ClassificationDialog
 import tempfile
-import os
 import threading
 
 class ClassificationWorker(QThread):
@@ -138,8 +137,7 @@ class ClassificationTab(QWidget):
             dialog = ClassificationDialog(image_data["image"], ['roedeer', 'deer', 'muskdeer'], self)
             if dialog.exec_() == QDialog.Accepted:
                 selected_class = dialog.selected_class
-                image_data["classes"] = selected_class
-                print(image_data["classes"])
+                image_data["classes"] = [[selected_class, 1.0]]
 
     def on_classification_error(self, message):
         self.progress_dialog.close()
