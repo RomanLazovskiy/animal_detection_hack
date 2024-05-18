@@ -1,5 +1,3 @@
-# gui/tabs/classification_tab.py
-
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QCoreApplication, QEventLoop
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFileDialog, QMessageBox, QProgressDialog, QDialog
 from backend.inference import process_archive_classification, classification_model, process_images_classification

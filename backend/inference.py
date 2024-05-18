@@ -49,7 +49,7 @@ def process_images_classification(model, image_paths, stop_event=None):
             print(f"Cannot identify image file {image_path}, skipping.")
             continue
         outputs = run_inference(model, img, stop_event)
-        image_data = {"image": os.path.basename(image_path), "classes": []}
+        image_data = {"image": image_path, "classes": []}  # Use full image path
         for result in outputs:
             if result.probs is not None:
                 label = int(result.probs.top1)

@@ -1,5 +1,3 @@
-# gui/tabs/classification_dialog.py
-
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
 from PyQt5.QtGui import QPixmap
 import os
