@@ -8,12 +8,26 @@ from PIL import Image
 def display_plot(parent, class_counts):
     buf = BytesIO()
     fig, ax = plt.subplots()
-    labels = list(class_counts.keys())
+
+    # Словарь для перевода названий классов на русский
+    animal_dict = {'roedeer': 'Косуля', 'deer': 'Олень', 'muskdeer': 'Кабарга'}
+
+    # Преобразуем названия классов и получим их количество
+    labels = [animal_dict.get(label, label) for label in class_counts.keys()]
     counts = list(class_counts.values())
-    ax.bar(labels, counts)
+
+    # Построение графика
+    bars = ax.bar(labels, counts)
+
+    # Добавление текста с количеством каждого класса на график
+    for bar, count in zip(bars, counts):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() - 5,
+                str(count), ha='center', va='bottom', color='black', fontsize=10, fontweight='bold')
+
     ax.set_xlabel('Класс')
     ax.set_ylabel('Количество')
     ax.set_title('Результаты классификации')
+
     plt.savefig(buf, format='png')
     buf.seek(0)
 
