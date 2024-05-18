@@ -28,7 +28,7 @@
 ## Установка
 
 ### Ссылка на exe приложение
-https://drive.google.com/file/d/1K9SdxSy5dsHGr73bbFuxwgcK72o57xfx/view?usp=sharing
+https://drive.google.com/file/d/1DZTxamfCix_vY81n71okRywocpEnM62C/view?usp=sharing
 
 ### Ссылка на модели
 https://drive.google.com/file/d/15HSl6eTC-8VHq8v0s83o1tfy9pY631iy/view?usp=sharing

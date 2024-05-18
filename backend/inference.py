@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 
 model_directory = os.path.join(os.path.dirname(__file__), '..', 'models')
-detection_model_path = os.path.join(model_directory, 'best_detect.pt')
+detection_model_path = os.path.join(model_directory, 'best_detect_world.pt')
 classification_model_path = os.path.join(model_directory, 'best_clasify.pt')
 
 detection_model = YOLO(detection_model_path)
