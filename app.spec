@@ -11,6 +11,8 @@ a = Analysis(
     binaries=[],
     datas=datas + [
         ('backend/*', 'backend'),  # Включаем файлы из папки backend
+        ('models/best_detect.pt', 'models'),  # Включаем файл модели
+        ('models/best_clasify.pt', 'models'),  # Включаем файл модели
     ],
     hiddenimports=[
         'ultralytics',
