@@ -3,7 +3,7 @@ import os
 import json
 from datetime import datetime
 from ultralytics import YOLO
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, UnidentifiedImageError
 import cv2
 import numpy as np
 import pandas as pd
@@ -46,7 +46,11 @@ def process_images_classification(model, image_paths):
     class_counts = {}
     image_classifications = []
     for image_path in image_paths:
-        img = Image.open(image_path).convert("RGB")
+        try:
+            img = Image.open(image_path).convert("RGB")
+        except UnidentifiedImageError:
+            print(f"Cannot identify image file {image_path}, skipping.")
+            continue
         outputs = run_inference(model, img)
         image_data = {"image": os.path.basename(image_path), "classes": []}
         for result in outputs:
@@ -90,7 +94,13 @@ def process_video(model, video_path):
 def process_archive_classification(model, archive_path, extract_to):
     with zipfile.ZipFile(archive_path, 'r') as zip_ref:
         zip_ref.extractall(extract_to)
-    image_paths = [os.path.join(extract_to, f) for f in os.listdir(extract_to) if f.endswith(('.png', '.jpg', '.jpeg'))]
+
+    image_paths = []
+    for root, _, files in os.walk(extract_to):
+        for file in files:
+            if file.endswith(('.png', '.jpg', '.jpeg')):
+                image_paths.append(os.path.join(root, file))
+
     return process_images_classification(model, image_paths)
 
 

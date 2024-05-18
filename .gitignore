@@ -10,6 +10,7 @@ __pycache__/
 *.zip
 *.jpeg
 *.jpg
+*.png
 .python-version
 
 gui/metadata
