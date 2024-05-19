@@ -3,7 +3,7 @@
 import zipfile
 import os
 from ultralytics import YOLO
-from PIL import Image, ImageDraw, UnidentifiedImageError
+from PIL import Image, ImageFile, UnidentifiedImageError
 import cv2
 import numpy as np
 
@@ -13,6 +13,7 @@ classification_model_path = os.path.join(model_directory, 'best_clasify.pt')
 
 detection_model = YOLO(detection_model_path)
 classification_model = YOLO(classification_model_path)
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def run_inference(model, img, stop_event=None):
     results = model.predict(source=img, imgsz=544)
@@ -40,24 +41,38 @@ def process_image_detection(model, image_path, stop_event=None):
 def process_images_classification(model, image_paths, stop_event=None):
     class_counts = {}
     image_classifications = []
+
     for image_path in image_paths:
         if stop_event and stop_event.is_set():
             raise InterruptedError("Inference was stopped.")
+
         try:
             img = Image.open(image_path).convert("RGB")
         except UnidentifiedImageError:
             print(f"Cannot identify image file {image_path}, skipping.")
             continue
-        outputs = run_inference(model, img, stop_event)
-        image_data = {"image": image_path, "classes": []}  # Use full image path
+        except Exception as e:
+            print(f"Error loading image {image_path}: {e}")
+            continue
+
+        try:
+            outputs = run_inference(model, img, stop_event)
+        except Exception as e:
+            print(f"Error running inference on image {image_path}: {e}")
+            continue
+
+        image_data = {"image": image_path, "classes": []}
+
         for result in outputs:
             if result.probs is not None:
                 label = int(result.probs.top1)
                 label_name = model.names[label]
-                top1conf = result.probs.top1conf.item()  # Получаем вероятность для top1 класса
+                top1conf = result.probs.top1conf.item()
                 class_counts[label_name] = class_counts.get(label_name, 0) + 1
-                image_data["classes"].append((label_name, top1conf))  # Сохраняем класс и его вероятность
+                image_data["classes"].append((label_name, top1conf))
+
         image_classifications.append(image_data)
+
     return class_counts, image_classifications
 
 def process_video(model, video_path, stop_event=None):
